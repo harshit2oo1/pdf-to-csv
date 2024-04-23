@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Parser</title>
+</head>
+<body>
+  <input type="file" id="inpFile">
+  <button type="button" id="btnUpload">Upload</button>
+  <button type="button" id="btnDownload">Download CSV</button>
+  <br><br>
+  <input type="text" id="searchInput" placeholder="Search...">
+  <div id="tableContainer"></div>
+  <br>
+  <script>
+    const inpFile = document.getElementById("inpFile");
+    const btnUpload = document.getElementById("btnUpload");
+    const tableContainer = document.getElementById("tableContainer");
+    const btnDownload = document.getElementById("btnDownload");
+    const searchInput = document.getElementById("searchInput");
+
+    btnUpload.addEventListener("click", () => {
+      const formData = new FormData();
+      formData.append("pdfFile", inpFile.files[0]);
+      fetch("/extract-text", {
+        method: "POST",
+        body: formData
+      })
+        .then(response => {
+          return response.text();
+        })
+        .then(extractedHTML => {
+          tableContainer.innerHTML = extractedHTML;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    });
+
+    btnDownload.addEventListener("click", () => {
+      fetch("/download-csv", {
+        method: "GET"
+      })
+        .then(response => {
+          return response.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(new Blob([blob]));
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'output.csv';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    });
+
+    searchInput.addEventListener("input", filterTable);
+
+    function filterTable() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const tableRows = tableContainer.getElementsByTagName("tr");
+
+      for (let i = 0; i < tableRows.length; i++) {
+        const rowData = tableRows[i].textContent.toLowerCase();
+        if (rowData.includes(searchTerm)) {
+          tableRows[i].style.display = "";
+        } else {
+          tableRows[i].style.display = "none";
+        }
+      }
+    }
+  </script>
+</body>
+</html>
